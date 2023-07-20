@@ -1,0 +1,53 @@
+import logging
+from forex_python.converter import CurrencyRates
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, CallbackContext
+
+# Your Telegram bot token from BotFather
+TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+
+# Set up logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+# Command handler for /start
+def start(update: Update, _: CallbackContext) -> None:
+    user = update.effective_user
+    update.message.reply_text(f'Hello, {user.mention_html()}! I am the Currency Calculator bot. '
+                              f'Use /convert <amount> <from_currency> to <to_currency> to get the converted amount.')
+
+# Command handler for /convert <amount> <from_currency> to <to_currency>
+def convert(update: Update, _: CallbackContext) -> None:
+    args = _.args
+    if len(args) != 4:
+        update.message.reply_text('Please use the correct format: /convert <amount> <from_currency> to <to_currency>.')
+        return
+
+    amount, from_currency, _, to_currency = args
+    try:
+        amount = float(amount)
+    except ValueError:
+        update.message.reply_text('Please provide a valid amount to convert.')
+        return
+
+    currency_rates = CurrencyRates()
+    converted_amount = currency_rates.convert(from_currency.upper(), to_currency.upper(), amount)
+    update.message.reply_text(f'{amount} {from_currency.upper()} is equal to {converted_amount:.2f} {to_currency.upper()}.')
+
+def main() -> None:
+    updater = Updater(TOKEN)
+
+    # Get the dispatcher to register handlers
+    dp = updater.dispatcher
+
+    # Register command handlers
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("convert", convert))
+
+    # Start the Bot
+    updater.start_polling()
+
+    # Run the bot until the user presses Ctrl-C
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
